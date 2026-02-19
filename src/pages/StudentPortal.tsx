@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLab } from '@/contexts/LabContext';
+import type { AllocationRecord } from '@/contexts/LabContext';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ScanLine, ChevronDown } from 'lucide-react';
 import iithLogo from '@/assets/iith-logo.png';
@@ -10,8 +11,11 @@ const StudentPortal = () => {
   const [step, setStep] = useState<'scan' | 'select' | 'done'>('scan');
   const [result, setResult] = useState<{ rollNo: string; tableNo: number } | null>(null);
   const [error, setError] = useState('');
-  const { allocateSpecificTable, getAvailableTables } = useLab();
+  const { allocateSpecificTable, getAvailableTables, records } = useLab();
   const navigate = useNavigate();
+  
+  // Get last 10 records in reverse order
+  const recentRecords = [...records].reverse().slice(0, 10);
 
   const handleScan = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +176,32 @@ const StudentPortal = () => {
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">Session Duration: 3 Hours</div>
                 <div className="mt-4 text-xs text-muted-foreground">Redirecting in a few seconds...</div>
+              </div>
+            </div>
+          )}
+          {/* Recent Allocations */}
+          {step === 'scan' && recentRecords.length > 0 && (
+            <div className="mt-8 w-full max-w-sm">
+              <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Recent Allocations</h3>
+              <div className="rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Roll No</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Table</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentRecords.map((r, i) => (
+                      <tr key={i} className="border-b border-border last:border-0">
+                        <td className="px-3 py-2 font-mono text-xs text-foreground">{r.studentRollNo}</td>
+                        <td className="px-3 py-2 font-semibold text-primary">T-{String(r.tableNumber).padStart(2, '0')}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{r.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
