@@ -11,7 +11,7 @@ const StudentPortal = () => {
   const [step, setStep] = useState<'scan' | 'select' | 'done'>('scan');
   const [result, setResult] = useState<{ rollNo: string; tableNo: number } | null>(null);
   const [error, setError] = useState('');
-  const { allocateSpecificTable, getAvailableTables, records } = useLab();
+  const { allocateSpecificTable, getAvailableTables, records, tables } = useLab();
   const navigate = useNavigate();
   
   // Get last 10 records in reverse order
@@ -20,8 +20,19 @@ const StudentPortal = () => {
   const handleScan = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!rollNo.trim()) {
+    const trimmed = rollNo.trim().toUpperCase();
+    if (!trimmed) {
       setError('Please enter your Roll Number');
+      return;
+    }
+    // Check if this roll number already has an active table
+    const alreadyAllocated = tables.find(t => t.studentRollNo === trimmed);
+    if (alreadyAllocated) {
+      setError(`This Roll Number has already been allotted Table T-${String(alreadyAllocated.id).padStart(2, '0')}. Other student, please use your own Roll Number.`);
+      setTimeout(() => {
+        setError('');
+        setRollNo('');
+      }, 4000);
       return;
     }
     setStep('select');
