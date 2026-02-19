@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLab } from '@/contexts/LabContext';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ScanLine, ChevronDown } from 'lucide-react';
@@ -48,13 +48,23 @@ const StudentPortal = () => {
     setStep('scan');
   };
 
+  // Auto-redirect back after allocation
+  useEffect(() => {
+    if (step === 'done') {
+      const timer = setTimeout(() => {
+        handleReset();
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
   const availableTables = getAvailableTables();
 
   return (
     <div className="flex min-h-screen">
       {/* Left Side - Logo */}
       <div className="hidden w-1/2 flex-col items-center justify-center bg-primary p-12 md:flex">
-        <img src={iithLogo} alt="IIT Hyderabad Logo" className="mb-8 h-48 w-48 object-contain brightness-0 invert" />
+        <img src={iithLogo} alt="IIT Hyderabad Logo" className="mb-8 h-48 w-48 object-contain" />
         <h2 className="mb-2 text-center text-2xl font-bold text-primary-foreground">
           Indian Institute of Technology Hyderabad
         </h2>
@@ -157,14 +167,12 @@ const StudentPortal = () => {
                 <div className="mb-6 font-mono text-xl font-bold text-foreground">{result.rollNo}</div>
                 <div className="mb-1 text-sm font-medium text-muted-foreground">Allotted Table Number</div>
                 <div className="text-5xl font-extrabold text-success">T-{String(result.tableNo).padStart(2, '0')}</div>
-                <div className="mt-6 text-sm text-muted-foreground">Session Duration: 3 Hours</div>
+                <div className="mt-6 text-lg font-semibold text-primary">
+                  Please go to the table, the power is ON
+                </div>
+                <div className="mt-2 text-sm text-muted-foreground">Session Duration: 3 Hours</div>
+                <div className="mt-4 text-xs text-muted-foreground">Redirecting in a few seconds...</div>
               </div>
-              <button
-                onClick={handleReset}
-                className="w-full rounded-xl bg-secondary py-3 text-base font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80"
-              >
-                Scan Another ID
-              </button>
             </div>
           )}
         </div>
