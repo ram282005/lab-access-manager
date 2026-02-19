@@ -146,25 +146,20 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [tables]);
 
   const allocateSpecificTable = useCallback((rollNo: string, tableId: number): boolean => {
-    let success = false;
-    setTables(prev => {
-      const table = prev.find(t => t.id === tableId);
-      if (!table || table.isOn || table.studentRollNo) return prev;
-      success = true;
-      const now = Date.now() / 1000;
-      const date = formatDate(new Date());
-      return prev.map(t =>
-        t.id === tableId
-          ? { ...t, isOn: true, studentRollNo: rollNo, allottedAt: now, date, manuallyOff: false }
-          : t
-      );
-    });
-    if (success) {
-      const date = formatDate(new Date());
-      setRecords(prev => [...prev, { studentRollNo: rollNo, tableNumber: tableId, date }]);
-    }
-    return success;
-  }, []);
+    // Check availability synchronously from current state
+    const table = tables.find(t => t.id === tableId);
+    if (!table || table.isOn || table.studentRollNo) return false;
+    
+    const now = Date.now() / 1000;
+    const date = formatDate(new Date());
+    setTables(prev => prev.map(t =>
+      t.id === tableId
+        ? { ...t, isOn: true, studentRollNo: rollNo, allottedAt: now, date, manuallyOff: false }
+        : t
+    ));
+    setRecords(prev => [...prev, { studentRollNo: rollNo, tableNumber: tableId, date }]);
+    return true;
+  }, [tables]);
 
   const getAvailableTables = useCallback((): TableEntry[] => {
     return tables.filter(t => !t.isOn && !t.studentRollNo);
