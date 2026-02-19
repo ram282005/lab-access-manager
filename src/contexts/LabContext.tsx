@@ -21,8 +21,10 @@ interface LabContextType {
   toggleTable: (id: number) => void;
   allOffTables: () => void;
   allocateTable: (rollNo: string) => number | null;
+  allocateSpecificTable: (rollNo: string, tableId: number) => boolean;
   deallocateTable: (id: number) => void;
   getTimeRemaining: (tableId: number) => number; // seconds remaining
+  getAvailableTables: () => TableEntry[];
 }
 
 const LabContext = createContext<LabContextType | null>(null);
@@ -143,8 +145,33 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return Math.max(0, SESSION_DURATION - elapsed);
   }, [tables]);
 
+  const allocateSpecificTable = useCallback((rollNo: string, tableId: number): boolean => {
+    let success = false;
+    setTables(prev => {
+      const table = prev.find(t => t.id === tableId);
+      if (!table || table.isOn || table.studentRollNo) return prev;
+      success = true;
+      const now = Date.now() / 1000;
+      const date = formatDate(new Date());
+      return prev.map(t =>
+        t.id === tableId
+          ? { ...t, isOn: true, studentRollNo: rollNo, allottedAt: now, date, manuallyOff: false }
+          : t
+      );
+    });
+    if (success) {
+      const date = formatDate(new Date());
+      setRecords(prev => [...prev, { studentRollNo: rollNo, tableNumber: tableId, date }]);
+    }
+    return success;
+  }, []);
+
+  const getAvailableTables = useCallback((): TableEntry[] => {
+    return tables.filter(t => !t.isOn && !t.studentRollNo);
+  }, [tables]);
+
   return (
-    <LabContext.Provider value={{ tables, records, toggleTable, allOffTables, allocateTable, deallocateTable, getTimeRemaining }}>
+    <LabContext.Provider value={{ tables, records, toggleTable, allOffTables, allocateTable, allocateSpecificTable, deallocateTable, getTimeRemaining, getAvailableTables }}>
       {children}
     </LabContext.Provider>
   );

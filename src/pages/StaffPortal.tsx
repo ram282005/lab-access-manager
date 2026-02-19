@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { useLab } from '@/contexts/LabContext';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, Power, PowerOff, Lock } from 'lucide-react';
+
+const STAFF_PASSWORD = '12345678';
 
 function formatTimer(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -10,8 +13,63 @@ function formatTimer(seconds: number): string {
 }
 
 const StaffPortal = () => {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const { tables, toggleTable, allOffTables, getTimeRemaining, deallocateTable } = useLab();
   const navigate = useNavigate();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === STAFF_PASSWORD) {
+      setAuthenticated(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Incorrect password. Please try again.');
+    }
+  };
+
+  if (!authenticated) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex flex-col items-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <Lock size={32} className="text-primary" />
+            </div>
+            <h1 className="mb-1 text-2xl font-bold text-foreground">Staff Login</h1>
+            <p className="text-sm text-muted-foreground">Enter password to access the portal</p>
+          </div>
+          <form onSubmit={handleLogin}>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter Password"
+              autoFocus
+              className="mb-4 w-full rounded-xl border-2 border-border bg-card px-5 py-4 text-center text-lg font-medium text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            {passwordError && (
+              <p className="mb-4 text-center text-sm font-medium text-destructive">{passwordError}</p>
+            )}
+            <button
+              type="submit"
+              className="mb-3 w-full rounded-xl bg-primary py-4 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-full rounded-xl bg-secondary py-3 text-base font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80"
+            >
+              Back to Home
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,7 +95,7 @@ const StaffPortal = () => {
         </div>
       </header>
 
-      {/* Tables as a proper HTML table */}
+      {/* Table */}
       <main className="mx-auto max-w-7xl p-6">
         <div className="mb-6 flex items-center gap-6 text-sm text-muted-foreground">
           <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-success" /> Available</span>
