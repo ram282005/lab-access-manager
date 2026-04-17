@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { db } from '@/lib/firebase';
+import { ref, onValue, set } from 'firebase/database';
 
 export interface TableEntry {
   id: number;
   isOn: boolean;
   manuallyOff: boolean;
   studentRollNo: string | null;
-  allottedAt: number | null; // timestamp
-  date: string | null; // DD-MM-YYYY
+  allottedAt: number | null;
+  date: string | null;
 }
 
 export interface AllocationRecord {
@@ -23,13 +25,12 @@ interface LabContextType {
   allocateTable: (rollNo: string) => number | null;
   allocateSpecificTable: (rollNo: string, tableId: number) => boolean;
   deallocateTable: (id: number) => void;
-  getTimeRemaining: (tableId: number) => number; // seconds remaining
+  getTimeRemaining: (tableId: number) => number;
   getAvailableTables: () => TableEntry[];
 }
 
 const LabContext = createContext<LabContextType | null>(null);
-
-const SESSION_DURATION = 3 * 60 * 60; // 3 hours in seconds
+const SESSION_DURATION = 3 * 60 * 60;
 
 function formatDate(d: Date): string {
   const dd = String(d.getDate()).padStart(2, '0');
@@ -49,21 +50,47 @@ function createInitialTables(): TableEntry[] {
   }));
 }
 
+// Push tables array to Firebase. We also write a compact `relays` map (id -> 0/1)
+// so the Arduino/ESP only needs to read tiny JSON.
+function pushTables(tables: TableEntry[]) {
+  set(ref(db, 'tables'), tables).catch(console.error);
+  const relays: Record<string, number> = {};
+  tables.forEach(t => { relays[t.id] = t.isOn ? 1 : 0; });
+  set(ref(db, 'relays'), relays).catch(console.error);
+}
+
+function pushRecords(records: AllocationRecord[]) {
+  set(ref(db, 'records'), records).catch(console.error);
+}
+
 export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [tables, setTables] = useState<TableEntry[]>(() => {
-    const saved = localStorage.getItem('lab_tables');
-    return saved ? JSON.parse(saved) : createInitialTables();
-  });
-
-  const [records, setRecords] = useState<AllocationRecord[]>(() => {
-    const saved = localStorage.getItem('lab_records');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const [tables, setTables] = useState<TableEntry[]>(createInitialTables);
+  const [records, setRecords] = useState<AllocationRecord[]>([]);
   const [, setTick] = useState(0);
   const intervalRef = useRef<number>();
+  const remoteSyncRef = useRef(false); // true while applying a remote snapshot (skip echo)
 
-  // tick every second for timers
+  // Subscribe to Firebase
+  useEffect(() => {
+    const unsubTables = onValue(ref(db, 'tables'), (snap) => {
+      const val = snap.val();
+      if (Array.isArray(val) && val.length === 30) {
+        remoteSyncRef.current = true;
+        setTables(val);
+      } else if (val == null) {
+        // first-run: seed remote
+        pushTables(createInitialTables());
+      }
+    });
+    const unsubRecords = onValue(ref(db, 'records'), (snap) => {
+      const val = snap.val();
+      remoteSyncRef.current = true;
+      setRecords(Array.isArray(val) ? val : []);
+    });
+    return () => { unsubTables(); unsubRecords(); };
+  }, []);
+
+  // 1Hz tick for timers
   useEffect(() => {
     intervalRef.current = window.setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(intervalRef.current);
@@ -80,22 +107,27 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return t;
     });
-    if (changed) setTables(updated);
+    if (changed) {
+      setTables(updated);
+      pushTables(updated);
+    }
   });
 
+  // Mirror local tables to Firebase (skip if change came from remote)
   useEffect(() => {
-    localStorage.setItem('lab_tables', JSON.stringify(tables));
+    if (remoteSyncRef.current) { remoteSyncRef.current = false; return; }
+    pushTables(tables);
   }, [tables]);
 
   useEffect(() => {
-    localStorage.setItem('lab_records', JSON.stringify(records));
+    if (remoteSyncRef.current) { remoteSyncRef.current = false; return; }
+    pushRecords(records);
   }, [records]);
 
   const toggleTable = useCallback((id: number) => {
     setTables(prev => prev.map(t => {
       if (t.id !== id) return t;
       if (t.isOn) {
-        // turning off
         return { ...t, isOn: false, manuallyOff: false, studentRollNo: null, allottedAt: null, date: null };
       } else {
         return { ...t, isOn: true, manuallyOff: false };
@@ -146,10 +178,8 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [tables]);
 
   const allocateSpecificTable = useCallback((rollNo: string, tableId: number): boolean => {
-    // Check availability synchronously from current state
     const table = tables.find(t => t.id === tableId);
     if (!table || table.isOn || table.studentRollNo) return false;
-    
     const now = Date.now() / 1000;
     const date = formatDate(new Date());
     setTables(prev => prev.map(t =>
