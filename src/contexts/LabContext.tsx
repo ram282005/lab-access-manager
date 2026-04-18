@@ -1,6 +1,22 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { db } from '@/lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
+import { supabase } from '@/integrations/supabase/client';
+
+async function logSessionToSheet(rollNo: string, tableNumber: number, startTimeSec: number) {
+  try {
+    await supabase.functions.invoke('log-session', {
+      body: {
+        rollNo,
+        tableNumber,
+        startTime: new Date(startTimeSec * 1000).toISOString(),
+        endTime: new Date().toISOString(),
+      },
+    });
+  } catch (e) {
+    console.error('Failed to log session to sheet:', e);
+  }
+}
 
 export interface TableEntry {
   id: number;
