@@ -158,9 +158,16 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const allOffTables = useCallback(() => {
-    setTables(prev => prev.map(t => ({
-      ...t, isOn: false, manuallyOff: false, studentRollNo: null, allottedAt: null, date: null,
-    })));
+    setTables(prev => {
+      prev.forEach(t => {
+        if (t.isOn && t.studentRollNo && t.allottedAt) {
+          logSessionToSheet(t.studentRollNo, t.id, t.allottedAt);
+        }
+      });
+      return prev.map(t => ({
+        ...t, isOn: false, manuallyOff: false, studentRollNo: null, allottedAt: null, date: null,
+      }));
+    });
   }, []);
 
   const allocateTable = useCallback((rollNo: string): number | null => {
@@ -185,11 +192,13 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const deallocateTable = useCallback((id: number) => {
-    setTables(prev => prev.map(t =>
-      t.id === id
-        ? { ...t, isOn: false, studentRollNo: null, allottedAt: null, date: null, manuallyOff: false }
-        : t
-    ));
+    setTables(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      if (t.isOn && t.studentRollNo && t.allottedAt) {
+        logSessionToSheet(t.studentRollNo, t.id, t.allottedAt);
+      }
+      return { ...t, isOn: false, studentRollNo: null, allottedAt: null, date: null, manuallyOff: false };
+    }));
   }, []);
 
   const getTimeRemaining = useCallback((tableId: number): number => {
