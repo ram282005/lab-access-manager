@@ -9,11 +9,15 @@ const SA_KEY_RAW = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY")!;
 // --- helpers ---------------------------------------------------------------
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const cleaned = pem
-    .replace(/\\n/g, "\n")
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
+  let cleaned = pem.trim();
+  if (cleaned.startsWith('"') && cleaned.endsWith('"')) cleaned = cleaned.slice(1, -1);
+  cleaned = cleaned
+    .replace(/\\n/g, "")
+    .replace(/-----BEGIN [^-]+-----/g, "")
+    .replace(/-----END [^-]+-----/g, "")
     .replace(/\s+/g, "");
+  // Diagnostic: log info about the cleaned key (length + first/last chars only).
+  console.log(`PEM cleaned length=${cleaned.length}, head="${cleaned.slice(0, 12)}", tail="${cleaned.slice(-12)}"`);
   const bin = atob(cleaned);
   const buf = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
@@ -108,6 +112,8 @@ function fmtTime(d: Date): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  console.log(`Env check: SHEET_ID len=${SHEET_ID?.length}, EMAIL len=${SA_EMAIL?.length}, KEY len=${SA_KEY_RAW?.length}, KEY head="${SA_KEY_RAW?.slice(0, 30)}", contains BEGIN=${SA_KEY_RAW?.includes('BEGIN')}, contains literal \\n=${SA_KEY_RAW?.includes('\\n')}, contains real newline=${SA_KEY_RAW?.includes('\n')}`);
 
   try {
     const { rollNo, tableNumber, startTime, endTime } = await req.json();
