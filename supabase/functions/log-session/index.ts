@@ -9,17 +9,15 @@ const SA_KEY_RAW = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY")!;
 // --- helpers ---------------------------------------------------------------
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
-  // Strip headers/footers, all whitespace, and any literal "\n" sequences.
-  // Also tolerate quoted-JSON pastes by trimming surrounding quotes.
   let cleaned = pem.trim();
-  if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-    cleaned = cleaned.slice(1, -1);
-  }
+  if (cleaned.startsWith('"') && cleaned.endsWith('"')) cleaned = cleaned.slice(1, -1);
   cleaned = cleaned
     .replace(/\\n/g, "")
     .replace(/-----BEGIN [^-]+-----/g, "")
     .replace(/-----END [^-]+-----/g, "")
     .replace(/\s+/g, "");
+  // Diagnostic: log info about the cleaned key (length + first/last chars only).
+  console.log(`PEM cleaned length=${cleaned.length}, head="${cleaned.slice(0, 12)}", tail="${cleaned.slice(-12)}"`);
   const bin = atob(cleaned);
   const buf = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
