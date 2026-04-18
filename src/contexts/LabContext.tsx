@@ -1,6 +1,22 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { db } from '@/lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
+import { supabase } from '@/integrations/supabase/client';
+
+async function logSessionToSheet(rollNo: string, tableNumber: number, startTimeSec: number) {
+  try {
+    await supabase.functions.invoke('log-session', {
+      body: {
+        rollNo,
+        tableNumber,
+        startTime: new Date(startTimeSec * 1000).toISOString(),
+        endTime: new Date().toISOString(),
+      },
+    });
+  } catch (e) {
+    console.error('Failed to log session to sheet:', e);
+  }
+}
 
 export interface TableEntry {
   id: number;
@@ -100,9 +116,11 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const now = Date.now() / 1000;
     let changed = false;
+    const expiring: Array<{ rollNo: string; tableId: number; allottedAt: number }> = [];
     const updated = tables.map(t => {
       if (t.isOn && t.allottedAt && (now - t.allottedAt) >= SESSION_DURATION) {
         changed = true;
+        if (t.studentRollNo) expiring.push({ rollNo: t.studentRollNo, tableId: t.id, allottedAt: t.allottedAt });
         return { ...t, isOn: false, studentRollNo: null, allottedAt: null, date: null, manuallyOff: false };
       }
       return t;
@@ -110,6 +128,7 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (changed) {
       setTables(updated);
       pushTables(updated);
+      expiring.forEach(e => logSessionToSheet(e.rollNo, e.tableId, e.allottedAt));
     }
   });
 
@@ -128,6 +147,9 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTables(prev => prev.map(t => {
       if (t.id !== id) return t;
       if (t.isOn) {
+        if (t.studentRollNo && t.allottedAt) {
+          logSessionToSheet(t.studentRollNo, t.id, t.allottedAt);
+        }
         return { ...t, isOn: false, manuallyOff: false, studentRollNo: null, allottedAt: null, date: null };
       } else {
         return { ...t, isOn: true, manuallyOff: false };
@@ -136,9 +158,16 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const allOffTables = useCallback(() => {
-    setTables(prev => prev.map(t => ({
-      ...t, isOn: false, manuallyOff: false, studentRollNo: null, allottedAt: null, date: null,
-    })));
+    setTables(prev => {
+      prev.forEach(t => {
+        if (t.isOn && t.studentRollNo && t.allottedAt) {
+          logSessionToSheet(t.studentRollNo, t.id, t.allottedAt);
+        }
+      });
+      return prev.map(t => ({
+        ...t, isOn: false, manuallyOff: false, studentRollNo: null, allottedAt: null, date: null,
+      }));
+    });
   }, []);
 
   const allocateTable = useCallback((rollNo: string): number | null => {
@@ -163,11 +192,13 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const deallocateTable = useCallback((id: number) => {
-    setTables(prev => prev.map(t =>
-      t.id === id
-        ? { ...t, isOn: false, studentRollNo: null, allottedAt: null, date: null, manuallyOff: false }
-        : t
-    ));
+    setTables(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      if (t.isOn && t.studentRollNo && t.allottedAt) {
+        logSessionToSheet(t.studentRollNo, t.id, t.allottedAt);
+      }
+      return { ...t, isOn: false, studentRollNo: null, allottedAt: null, date: null, manuallyOff: false };
+    }));
   }, []);
 
   const getTimeRemaining = useCallback((tableId: number): number => {
