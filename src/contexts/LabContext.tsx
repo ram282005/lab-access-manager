@@ -116,9 +116,11 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const now = Date.now() / 1000;
     let changed = false;
+    const expiring: Array<{ rollNo: string; tableId: number; allottedAt: number }> = [];
     const updated = tables.map(t => {
       if (t.isOn && t.allottedAt && (now - t.allottedAt) >= SESSION_DURATION) {
         changed = true;
+        if (t.studentRollNo) expiring.push({ rollNo: t.studentRollNo, tableId: t.id, allottedAt: t.allottedAt });
         return { ...t, isOn: false, studentRollNo: null, allottedAt: null, date: null, manuallyOff: false };
       }
       return t;
@@ -126,8 +128,28 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (changed) {
       setTables(updated);
       pushTables(updated);
+      expiring.forEach(e => logSessionToSheet(e.rollNo, e.tableId, e.allottedAt));
     }
   });
+
+  // Mirror local tables to Firebase (skip if change came from remote)
+  useEffect(() => {
+    if (remoteSyncRef.current) { remoteSyncRef.current = false; return; }
+    pushTables(tables);
+  }, [tables]);
+
+  useEffect(() => {
+    if (remoteSyncRef.current) { remoteSyncRef.current = false; return; }
+    pushRecords(records);
+  }, [records]);
+
+  const toggleTable = useCallback((id: number) => {
+    setTables(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      if (t.isOn) {
+        if (t.studentRollNo && t.allottedAt) {
+          logSessionToSheet(t.studentRollNo, t.id, t.allottedAt);
+        }
 
   // Mirror local tables to Firebase (skip if change came from remote)
   useEffect(() => {
