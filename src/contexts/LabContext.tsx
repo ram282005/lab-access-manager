@@ -150,22 +150,6 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (t.studentRollNo && t.allottedAt) {
           logSessionToSheet(t.studentRollNo, t.id, t.allottedAt);
         }
-
-  // Mirror local tables to Firebase (skip if change came from remote)
-  useEffect(() => {
-    if (remoteSyncRef.current) { remoteSyncRef.current = false; return; }
-    pushTables(tables);
-  }, [tables]);
-
-  useEffect(() => {
-    if (remoteSyncRef.current) { remoteSyncRef.current = false; return; }
-    pushRecords(records);
-  }, [records]);
-
-  const toggleTable = useCallback((id: number) => {
-    setTables(prev => prev.map(t => {
-      if (t.id !== id) return t;
-      if (t.isOn) {
         return { ...t, isOn: false, manuallyOff: false, studentRollNo: null, allottedAt: null, date: null };
       } else {
         return { ...t, isOn: true, manuallyOff: false };
