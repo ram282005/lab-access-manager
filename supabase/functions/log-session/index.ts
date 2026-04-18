@@ -113,6 +113,8 @@ function fmtTime(d: Date): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  console.log(`Env check: SHEET_ID len=${SHEET_ID?.length}, EMAIL len=${SA_EMAIL?.length}, KEY len=${SA_KEY_RAW?.length}, KEY head="${SA_KEY_RAW?.slice(0, 30)}", contains BEGIN=${SA_KEY_RAW?.includes('BEGIN')}, contains literal \\n=${SA_KEY_RAW?.includes('\\n')}, contains real newline=${SA_KEY_RAW?.includes('\n')}`);
+
   try {
     const { rollNo, tableNumber, startTime, endTime } = await req.json();
     if (!rollNo || !tableNumber || !startTime || !endTime) {
