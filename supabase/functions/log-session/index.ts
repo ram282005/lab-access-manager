@@ -11,12 +11,17 @@ const SA_KEY_RAW = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY")!;
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   let cleaned = pem.trim();
   if (cleaned.startsWith('"') && cleaned.endsWith('"')) cleaned = cleaned.slice(1, -1);
+  // Strip BEGIN/END markers if present, literal "\n" sequences, and all whitespace.
   cleaned = cleaned
     .replace(/\\n/g, "")
+    .replace(/\\r/g, "")
     .replace(/-----BEGIN [^-]+-----/g, "")
     .replace(/-----END [^-]+-----/g, "")
     .replace(/\s+/g, "");
-  // Diagnostic: log info about the cleaned key (length + first/last chars only).
+  // Keep only valid base64 characters (drops anything stray).
+  cleaned = cleaned.replace(/[^A-Za-z0-9+/=]/g, "");
+  // Pad to multiple of 4.
+  while (cleaned.length % 4 !== 0) cleaned += "=";
   console.log(`PEM cleaned length=${cleaned.length}, head="${cleaned.slice(0, 12)}", tail="${cleaned.slice(-12)}"`);
   const bin = atob(cleaned);
   const buf = new Uint8Array(bin.length);
