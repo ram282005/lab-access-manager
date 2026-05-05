@@ -121,9 +121,10 @@ const StaffPortal = () => {
                 const remaining = getTimeRemaining(table.id);
                 const isOccupied = table.isOn && table.studentRollNo;
                 const isAvailableOn = table.isOn && !table.studentRollNo;
+                const isDisabled = !ACTIVE_TABLE_IDS.includes(table.id);
 
                 return (
-                  <tr key={table.id} className="border-b border-border last:border-0">
+                  <tr key={table.id} className={`border-b border-border last:border-0 ${isDisabled ? 'bg-muted/40 opacity-60' : ''}`}>
                     <td className="px-4 py-3 font-bold text-foreground">T-{String(table.id).padStart(2, '0')}</td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-2">
