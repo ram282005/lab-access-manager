@@ -1,6 +1,6 @@
 // Firebase initialization for IITH Power System
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, set, update } from "firebase/database";
+import { getDatabase, ref, onValue, set, update, remove } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBmoodbrLxTP1QQWnylOOHg-0Aq2ySd6_c",
