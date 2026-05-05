@@ -74,15 +74,18 @@ function createInitialTables(): TableEntry[] {
 // ESP reads /LEDS/led1, /LEDS/led2, /LEDS/led3 (0/1) and /RELAY/status.
 function pushTables(tables: TableEntry[]) {
   set(ref(db, 'tables'), tables).catch(console.error);
-  // Map first 3 tables to led1/led2/led3 for ESP relay control.
-  const led1 = tables[0]?.isOn ? 1 : 0;
-  const led2 = tables[1]?.isOn ? 1 : 0;
-  const led3 = tables[2]?.isOn ? 1 : 0;
-  set(ref(db, 'LEDS/led1'), led1).catch(console.error);
-  set(ref(db, 'LEDS/led2'), led2).catch(console.error);
-  set(ref(db, 'LEDS/led3'), led3).catch(console.error);
-  // If any relay is ON from portal, clear emergency by setting status = "ON".
-  if (led1 || led2 || led3) {
+  // Table 1 controls all 3 relays (Relay_1, Relay_2, Relay_3) together.
+  // ESP reads /LEDS/led1, /LEDS/led2, /LEDS/led3 — all mirror Table 1's state.
+  const t1 = tables[0]?.isOn ? 1 : 0;
+  set(ref(db, 'LEDS/led1'), t1).catch(console.error);
+  set(ref(db, 'LEDS/led2'), t1).catch(console.error);
+  set(ref(db, 'LEDS/led3'), t1).catch(console.error);
+  // Also write Relay_1/2/3 nodes for clarity.
+  set(ref(db, 'RELAYS/Relay_1'), t1).catch(console.error);
+  set(ref(db, 'RELAYS/Relay_2'), t1).catch(console.error);
+  set(ref(db, 'RELAYS/Relay_3'), t1).catch(console.error);
+  // If Table 1 is ON, clear emergency by setting status = "ON".
+  if (t1) {
     set(ref(db, 'RELAY/status'), 'ON').catch(console.error);
   }
 }
