@@ -235,7 +235,7 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [tables]);
 
   const getAvailableTables = useCallback((): TableEntry[] => {
-    return tables.filter(t => !t.isOn && !t.studentRollNo);
+    return tables.filter(t => ACTIVE_TABLE_IDS.includes(t.id) && !t.isOn && !t.studentRollNo);
   }, [tables]);
 
   return (
