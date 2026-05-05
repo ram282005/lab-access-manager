@@ -145,7 +145,9 @@ const StaffPortal = () => {
                     <td className="px-4 py-3 font-mono text-accent">{isOccupied ? formatTimer(remaining) : '—'}</td>
                     <td className="px-4 py-3">
                       <button
+                        disabled={isDisabled}
                         onClick={() => {
+                          if (isDisabled) return;
                           if (isOccupied) {
                             deallocateTable(table.id);
                           } else {
@@ -153,7 +155,9 @@ const StaffPortal = () => {
                           }
                         }}
                         className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          table.isOn
+                          isDisabled
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                            : table.isOn
                             ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
                             : 'bg-success text-success-foreground hover:bg-success/90'
                         }`}
