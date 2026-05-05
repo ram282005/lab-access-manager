@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLab } from '@/contexts/LabContext';
+import { ACTIVE_TABLE_IDS } from '@/contexts/LabContext';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Power, PowerOff, Lock } from 'lucide-react';
 
