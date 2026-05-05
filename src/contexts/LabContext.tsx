@@ -55,8 +55,12 @@ function formatDate(d: Date): string {
   return `${dd}-${mm}-${yyyy}`;
 }
 
+// Only Table 1 is active; Tables 2-10 are placeholders (disabled / gray in UI).
+export const ACTIVE_TABLE_IDS = [1];
+export const TOTAL_TABLES = 10;
+
 function createInitialTables(): TableEntry[] {
-  return Array.from({ length: 30 }, (_, i) => ({
+  return Array.from({ length: TOTAL_TABLES }, (_, i) => ({
     id: i + 1,
     isOn: false,
     manuallyOff: false,
@@ -66,13 +70,21 @@ function createInitialTables(): TableEntry[] {
   }));
 }
 
-// Push tables array to Firebase. We also write a compact `relays` map (id -> 0/1)
-// so the Arduino/ESP only needs to read tiny JSON.
+// Push tables array to Firebase.
+// ESP reads /LEDS/led1, /LEDS/led2, /LEDS/led3 (0/1) and /RELAY/status.
 function pushTables(tables: TableEntry[]) {
   set(ref(db, 'tables'), tables).catch(console.error);
-  const relays: Record<string, number> = {};
-  tables.forEach(t => { relays[t.id] = t.isOn ? 1 : 0; });
-  set(ref(db, 'relays'), relays).catch(console.error);
+  // Map first 3 tables to led1/led2/led3 for ESP relay control.
+  const led1 = tables[0]?.isOn ? 1 : 0;
+  const led2 = tables[1]?.isOn ? 1 : 0;
+  const led3 = tables[2]?.isOn ? 1 : 0;
+  set(ref(db, 'LEDS/led1'), led1).catch(console.error);
+  set(ref(db, 'LEDS/led2'), led2).catch(console.error);
+  set(ref(db, 'LEDS/led3'), led3).catch(console.error);
+  // If any relay is ON from portal, clear emergency by setting status = "ON".
+  if (led1 || led2 || led3) {
+    set(ref(db, 'RELAY/status'), 'ON').catch(console.error);
+  }
 }
 
 function pushRecords(records: AllocationRecord[]) {
