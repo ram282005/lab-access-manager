@@ -91,6 +91,8 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Cleanup legacy nodes — no longer used.
     remove(ref(db, 'relays')).catch(() => {});
     remove(ref(db, 'LEDS')).catch(() => {});
+    remove(ref(db, 'RELAYS')).catch(() => {});
+    remove(ref(db, 'RELAY')).catch(() => {});
     const unsubTables = onValue(ref(db, 'tables'), (snap) => {
       const val = snap.val();
       if (Array.isArray(val) && val.length === TOTAL_TABLES) {
