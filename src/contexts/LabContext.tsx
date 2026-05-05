@@ -102,11 +102,11 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const unsubTables = onValue(ref(db, 'tables'), (snap) => {
       const val = snap.val();
-      if (Array.isArray(val) && val.length === 30) {
+      if (Array.isArray(val) && val.length === TOTAL_TABLES) {
         remoteSyncRef.current = true;
         setTables(val);
-      } else if (val == null) {
-        // first-run: seed remote
+      } else if (val == null || (Array.isArray(val) && val.length !== TOTAL_TABLES)) {
+        // first-run or schema mismatch: seed remote
         pushTables(createInitialTables());
       }
     });
