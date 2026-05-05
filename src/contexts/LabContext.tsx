@@ -70,19 +70,9 @@ function createInitialTables(): TableEntry[] {
   }));
 }
 
-// Push tables array to Firebase.
-// ESP reads /LEDS/led1, /LEDS/led2, /LEDS/led3 (0/1) and /RELAY/status.
+// Push tables array to Firebase. Only writes /tables — no relay/LED nodes.
 function pushTables(tables: TableEntry[]) {
   set(ref(db, 'tables'), tables).catch(console.error);
-  // Table 1 controls all 3 relays (Relay_1, Relay_2, Relay_3) together.
-  const t1 = tables[0]?.isOn ? 1 : 0;
-  set(ref(db, 'RELAYS/Relay_1'), t1).catch(console.error);
-  set(ref(db, 'RELAYS/Relay_2'), t1).catch(console.error);
-  set(ref(db, 'RELAYS/Relay_3'), t1).catch(console.error);
-  // If Table 1 is ON, clear emergency by setting status = "ON".
-  if (t1) {
-    set(ref(db, 'RELAY/status'), 'ON').catch(console.error);
-  }
 }
 
 function pushRecords(records: AllocationRecord[]) {
@@ -101,6 +91,8 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Cleanup legacy nodes — no longer used.
     remove(ref(db, 'relays')).catch(() => {});
     remove(ref(db, 'LEDS')).catch(() => {});
+    remove(ref(db, 'RELAYS')).catch(() => {});
+    remove(ref(db, 'RELAY')).catch(() => {});
     const unsubTables = onValue(ref(db, 'tables'), (snap) => {
       const val = snap.val();
       if (Array.isArray(val) && val.length === TOTAL_TABLES) {
