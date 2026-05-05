@@ -20,4 +20,4 @@ export const db = getDatabase(firebaseApp);
 export const tablesRef = ref(db, "tables");
 export const recordsRef = ref(db, "records");
 
-export { ref, onValue, set, update };
+export { ref, onValue, set, update, remove };
