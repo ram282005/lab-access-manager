@@ -75,12 +75,7 @@ function createInitialTables(): TableEntry[] {
 function pushTables(tables: TableEntry[]) {
   set(ref(db, 'tables'), tables).catch(console.error);
   // Table 1 controls all 3 relays (Relay_1, Relay_2, Relay_3) together.
-  // ESP reads /LEDS/led1, /LEDS/led2, /LEDS/led3 — all mirror Table 1's state.
   const t1 = tables[0]?.isOn ? 1 : 0;
-  set(ref(db, 'LEDS/led1'), t1).catch(console.error);
-  set(ref(db, 'LEDS/led2'), t1).catch(console.error);
-  set(ref(db, 'LEDS/led3'), t1).catch(console.error);
-  // Also write Relay_1/2/3 nodes for clarity.
   set(ref(db, 'RELAYS/Relay_1'), t1).catch(console.error);
   set(ref(db, 'RELAYS/Relay_2'), t1).catch(console.error);
   set(ref(db, 'RELAYS/Relay_3'), t1).catch(console.error);
@@ -103,8 +98,9 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Subscribe to Firebase
   useEffect(() => {
-    // Cleanup legacy /relays node — no longer used.
+    // Cleanup legacy nodes — no longer used.
     remove(ref(db, 'relays')).catch(() => {});
+    remove(ref(db, 'LEDS')).catch(() => {});
     const unsubTables = onValue(ref(db, 'tables'), (snap) => {
       const val = snap.val();
       if (Array.isArray(val) && val.length === TOTAL_TABLES) {
