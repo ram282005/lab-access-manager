@@ -98,8 +98,9 @@ export const LabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Subscribe to Firebase
   useEffect(() => {
-    // Cleanup legacy /relays node — no longer used.
+    // Cleanup legacy nodes — no longer used.
     remove(ref(db, 'relays')).catch(() => {});
+    remove(ref(db, 'LEDS')).catch(() => {});
     const unsubTables = onValue(ref(db, 'tables'), (snap) => {
       const val = snap.val();
       if (Array.isArray(val) && val.length === TOTAL_TABLES) {
