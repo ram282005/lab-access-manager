@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { db } from '@/lib/firebase';
-import { ref, onValue, set } from 'firebase/database';
+import { ref, onValue, set, remove } from 'firebase/database';
 import { supabase } from '@/integrations/supabase/client';
 
 async function logSessionToSheet(rollNo: string, tableNumber: number, startTimeSec: number) {
